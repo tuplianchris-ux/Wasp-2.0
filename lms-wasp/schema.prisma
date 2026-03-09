@@ -1,0 +1,120 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  TEACHER
+  STUDENT
+}
+
+enum TestType {
+  QUIZ
+  TEST
+  EXAM
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+// Wasp manages email/password via Auth/AuthIdentity tables automatically.
+// Do NOT add email or password fields here.
+
+model User {
+  id           String        @id @default(cuid())
+  name         String        @default("")
+  role         Role          @default(STUDENT)
+  createdAt    DateTime      @default(now())
+  assignments  Assignment[]
+  submissions  Submission[]
+  testAttempts TestAttempt[]
+  libraryItems LibraryItem[]
+  tasks        Task[]
+}
+
+// ─── Task ─────────────────────────────────────────────────────────────────────
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  assignedTo  User     @relation(fields: [userId], references: [id])
+}
+
+// ─── Assignment ───────────────────────────────────────────────────────────────
+
+model Assignment {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  dueDate     DateTime
+  fileUrl     String?
+  createdAt   DateTime     @default(now())
+  userId      String
+  createdBy   User         @relation(fields: [userId], references: [id])
+  submissions Submission[]
+}
+
+// ─── Test ─────────────────────────────────────────────────────────────────────
+
+model Test {
+  id        String        @id @default(cuid())
+  title     String
+  type      TestType      @default(QUIZ)
+  questions String        // JSON array of Question objects
+  timeLimit Int?
+  published Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  attempts  TestAttempt[]
+}
+
+// ─── TestAttempt ──────────────────────────────────────────────────────────────
+
+model TestAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  testId      String
+  answers     String   // JSON map: { questionId -> answer }
+  score       Float?
+  autoGraded  Boolean  @default(false)
+  feedback    String?  // JSON array of per-question feedback
+  submittedAt DateTime @default(now())
+  student     User     @relation(fields: [userId], references: [id])
+  test        Test     @relation(fields: [testId], references: [id])
+}
+
+// ─── Submission ───────────────────────────────────────────────────────────────
+
+model Submission {
+  id           String     @id @default(cuid())
+  userId       String
+  assignmentId String
+  fileUrl      String?
+  textContent  String?
+  grade        Float?
+  feedback     String?
+  submittedAt  DateTime   @default(now())
+  student      User       @relation(fields: [userId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+}
+
+// ─── LibraryItem ──────────────────────────────────────────────────────────────
+
+model LibraryItem {
+  id        String   @id @default(cuid())
+  title     String
+  type      String   // "file" | "link"
+  url       String
+  tags      String   // JSON array of strings
+  userId    String
+  createdAt DateTime @default(now())
+  addedBy   User     @relation(fields: [userId], references: [id])
+}

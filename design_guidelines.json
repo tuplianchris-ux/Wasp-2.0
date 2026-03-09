@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "project_name": "TaskFlow & Community Hub",
+    "design_persona": "E1: The Anti-AI Designer",
+    "theme_archetype": "Soft Utility (Notion-Inspired) + Electric Accents (Community)",
+    "version": "1.0"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "code": "JetBrains Mono, monospace",
+      "display": "Playfair Display, serif"
+    },
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-semibold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-medium tracking-tight",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "h4": "text-xl md:text-2xl font-medium",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground",
+      "overline": "text-xs font-bold uppercase tracking-widest text-muted-foreground"
+    }
+  },
+  "colors": {
+    "palette_strategy": "Notion-Inspired Soft Utility",
+    "light_mode": {
+      "background": "#FFFFFF",
+      "foreground": "#37352F",
+      "card": "#FFFFFF",
+      "card_foreground": "#37352F",
+      "popover": "#FFFFFF",
+      "popover_foreground": "#37352F",
+      "primary": "#2F3437",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#F7F6F3",
+      "secondary_foreground": "#37352F",
+      "muted": "#F1F1EF",
+      "muted_foreground": "#787774",
+      "accent": "#E3E2E0",
+      "accent_foreground": "#37352F",
+      "destructive": "#EB5757",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#E9E9E7",
+      "input": "#E9E9E7",
+      "ring": "#2F3437"
+    },
+    "dark_mode": {
+      "background": "#191919",
+      "foreground": "#D4D4D4",
+      "card": "#202020",
+      "card_foreground": "#D4D4D4",
+      "popover": "#202020",
+      "popover_foreground": "#D4D4D4",
+      "primary": "#E3E2E0",
+      "primary_foreground": "#191919",
+      "secondary": "#2C2C2C",
+      "secondary_foreground": "#D4D4D4",
+      "muted": "#2C2C2C",
+      "muted_foreground": "#9B9B9B",
+      "accent": "#373737",
+      "accent_foreground": "#D4D4D4",
+      "destructive": "#CF6679",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#373737",
+      "input": "#373737",
+      "ring": "#D4D4D4"
+    },
+    "semantic_tags": {
+      "tag_red": "bg-[#FFD4D4] text-[#4D0000] dark:bg-[#4D0000] dark:text-[#FFD4D4]",
+      "tag_blue": "bg-[#D4E4FF] text-[#00234D] dark:bg-[#00234D] dark:text-[#D4E4FF]",
+      "tag_green": "bg-[#D4FFD4] text-[#004D00] dark:bg-[#004D00] dark:text-[#D4FFD4]",
+      "tag_yellow": "bg-[#FFFBD4] text-[#4D4600] dark:bg-[#4D4600] dark:text-[#FFFBD4]",
+      "tag_purple": "bg-[#EAD4FF] text-[#2A004D] dark:bg-[#2A004D] dark:text-[#EAD4FF]"
+    }
+  },
+  "layout_strategies": {
+    "dashboard_grid": {
+      "type": "Bento Grid (Mode B)",
+      "classes": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 md:p-8",
+      "rules": [
+        "Summary cards span 1 col",
+        "Main charts span 2-3 cols",
+        "Feed lists span 1 col, row-span-2",
+        "Use h-full on all children"
+      ]
+    },
+    "community_layout": {
+      "type": "Discord-Clone",
+      "structure": [
+        "Server Sidebar (Left, Fixed, w-[72px])",
+        "Channel Sidebar (Left-Inner, Fixed, w-60)",
+        "Chat Area (Flex-1, Scrollable)",
+        "Member List (Right, Hidden on Mobile, w-60)"
+      ]
+    },
+    "marketing_page": {
+      "type": "Tetris Grid (Mode A)",
+      "classes": "grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 p-6 md:p-12",
+      "rules": [
+        "Hero section must use asymmetry",
+        "Use generous whitespace (py-20 or py-32)",
+        "No centered text blocks longer than 3 lines"
+      ]
+    }
+  },
+  "components": {
+    "buttons": {
+      "default": "rounded-md font-medium transition-all active:scale-95",
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+      "ghost": "hover:bg-accent hover:text-accent-foreground",
+      "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+    },
+    "cards": {
+      "style": "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+      "hover_effect": "hover:shadow-md transition-shadow duration-200"
+    },
+    "inputs": {
+      "style": "rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-sm",
+    "gradients": "Use subtle noise textures instead of flat gradients. No full-screen gradients.",
+    "shadows": {
+      "soft": "shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+      "medium": "shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+      "glow": "shadow-[0_0_16px_rgba(var(--primary),0.3)]"
+    }
+  },
+  "assets": {
+    "image_urls": {
+      "study_hero": "https://images.unsplash.com/photo-1721383168321-a013f8ae890f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwc3R1ZHklMjBkZXNrJTIwcGxhbnRzfGVufDB8fHx8MTc2NTQ5ODQyN3ww&ixlib=rb-4.1.0&q=85",
+      "community_hero": "https://images.unsplash.com/photo-1758272133417-011aebb36018?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIwZ3JvdXAlMjBvZiUyMGZyaWVuZHMlMjBsYXVnaGluZ3xlbnwwfHx8fDE3NjU0OTg0MzB8MA&ixlib=rb-4.1.0&q=85",
+      "gift_exchange_hero": "https://images.unsplash.com/photo-1758738880138-4d7cd9489cd7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwyfHx3cmFwcGVkJTIwZ2lmdHMlMjBhZXN0aGV0aWN8ZW58MHx8fHwxNzY1NDk4NDMyfDA&ixlib=rb-4.1.0&q=85",
+      "default_avatar": "https://github.com/shadcn.png"
+    },
+    "icons": "Use lucide-react for all UI icons. Use @phosphor-icons/react for feature highlights if needed."
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALL DEPENDENCIES: npm install framer-motion lucide-react clsx tailwind-merge sonner date-fns react-day-picker recharts",
+    "2. THEME SETUP: Update tailwind.config.js to support the custom colors defined in 'colors' section. Override the CSS variables in index.css.",
+    "3. COMPONENT OVERRIDES: When using Shadcn components, strip the default 'slate' colors and replace with the 'muted', 'secondary', and 'border' variables defined above.",
+    "4. LAYOUT: Implement the 'Bento Grid' for the Dashboard. Do not use a simple flex-col layout.",
+    "5. COMMUNITY: For the Discord clone, ensure the sidebar is fixed height (h-screen) and the chat area is scrollable. Use 'bg-[#313338]' for the dark mode chat background (Discord specific) if the user toggles 'Community Mode'.",
+    "6. ACCESSIBILITY: Ensure all text meets APCA contrast standards. Use 'data-testid' on all interactive elements."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for text.",
+    "Avoid 'Inter' for Headings. Use 'Manrope'.",
+    "Use 2x more padding than you think is necessary.",
+    "Always add hover states: hover:bg-accent/50 or hover:translate-y-[-2px].",
+    "Use 'sonner' for all toast notifications."
+  ]
+}

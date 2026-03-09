@@ -1,0 +1,311 @@
+app visionaryLMS {
+  wasp: {
+    version: "^0.21.1"
+  },
+  title: "Visionary Academy LMS",
+  head: [
+    "<link rel='icon' href='/favicon.ico' />",
+    "<link rel='preconnect' href='https://fonts.googleapis.com' />",
+    "<link href='https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap' rel='stylesheet' />"
+  ],
+  client: {
+    rootComponent: import RootWrapper from "@src/RootWrapper"
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      email: {
+        userSignupFields: import { userSignupFields } from "@src/auth/signup",
+        fromField: {
+          name: "Visionary Academy",
+          email: "noreply@visionary.academy"
+        },
+        emailVerification: {
+          clientRoute: EmailVerificationRoute
+        },
+        passwordReset: {
+          clientRoute: PasswordResetRoute
+        }
+      }
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/"
+  },
+  emailSender: {
+    provider: Dummy
+  }
+}
+
+// ─── Auth Routes ──────────────────────────────────────────────────────────────
+
+route LoginRoute          { path: "/login",                    to: LoginPage }
+route SignupRoute         { path: "/signup",                   to: SignupPage }
+route EmailVerificationRoute { path: "/email-verification",   to: EmailVerificationPage }
+route RequestPasswordResetRoute { path: "/request-password-reset", to: RequestPasswordResetPage }
+route PasswordResetRoute  { path: "/password-reset",           to: PasswordResetPage }
+
+page LoginPage {
+  component: import { LoginPage } from "@src/pages/auth/AuthPages"
+}
+page SignupPage {
+  component: import { SignupPage } from "@src/pages/auth/AuthPages"
+}
+page EmailVerificationPage {
+  component: import { EmailVerificationPage } from "@src/pages/auth/AuthPages"
+}
+page RequestPasswordResetPage {
+  component: import { RequestPasswordResetPage } from "@src/pages/auth/AuthPages"
+}
+page PasswordResetPage {
+  component: import { PasswordResetPage } from "@src/pages/auth/AuthPages"
+}
+
+// ─── Root Route (role-based redirect) ────────────────────────────────────────
+
+route RootRoute { path: "/", to: RootPage }
+page RootPage {
+  authRequired: true,
+  component: import { RootPage } from "@src/pages/RootPage"
+}
+
+// ─── Teacher Routes ───────────────────────────────────────────────────────────
+
+route TeacherDashboardRoute { path: "/teacher/dashboard", to: TeacherDashboardPage }
+page TeacherDashboardPage {
+  authRequired: true,
+  component: import { TeacherDashboardPage } from "@src/pages/teacher/Dashboard"
+}
+
+route TeacherAssignmentsRoute { path: "/teacher/assignments", to: TeacherAssignmentsPage }
+page TeacherAssignmentsPage {
+  authRequired: true,
+  component: import { TeacherAssignmentsPage } from "@src/pages/teacher/Assignments"
+}
+
+route TeacherAssignmentDetailRoute { path: "/teacher/assignments/:id", to: TeacherAssignmentDetailPage }
+page TeacherAssignmentDetailPage {
+  authRequired: true,
+  component: import { TeacherAssignmentDetailPage } from "@src/pages/teacher/AssignmentDetail"
+}
+
+route TeacherTestsRoute { path: "/teacher/tests", to: TeacherTestsPage }
+page TeacherTestsPage {
+  authRequired: true,
+  component: import { TeacherTestsPage } from "@src/pages/teacher/Tests"
+}
+
+route TeacherTestDetailRoute { path: "/teacher/tests/:id", to: TeacherTestDetailPage }
+page TeacherTestDetailPage {
+  authRequired: true,
+  component: import { TeacherTestDetailPage } from "@src/pages/teacher/TestDetail"
+}
+
+route TeacherSubmissionsRoute { path: "/teacher/grading", to: TeacherSubmissionsPage }
+page TeacherSubmissionsPage {
+  authRequired: true,
+  component: import { TeacherSubmissionsPage } from "@src/pages/teacher/Submissions"
+}
+
+route TeacherLibraryRoute { path: "/teacher/library", to: TeacherLibraryPage }
+page TeacherLibraryPage {
+  authRequired: true,
+  component: import { TeacherLibraryPage } from "@src/pages/teacher/Library"
+}
+
+route TeacherTasksRoute { path: "/teacher/tasks", to: TeacherTasksPage }
+page TeacherTasksPage {
+  authRequired: true,
+  component: import { TeacherTasksPage } from "@src/pages/teacher/Tasks"
+}
+
+// ─── Student Routes ───────────────────────────────────────────────────────────
+
+route StudentDashboardRoute { path: "/student/dashboard", to: StudentDashboardPage }
+page StudentDashboardPage {
+  authRequired: true,
+  component: import { StudentDashboardPage } from "@src/pages/student/Dashboard"
+}
+
+route StudentAssignmentsRoute { path: "/student/assignments", to: StudentAssignmentsPage }
+page StudentAssignmentsPage {
+  authRequired: true,
+  component: import { StudentAssignmentsPage } from "@src/pages/student/Assignments"
+}
+
+route StudentTestsRoute { path: "/student/tests", to: StudentTestsPage }
+page StudentTestsPage {
+  authRequired: true,
+  component: import { StudentTestsPage } from "@src/pages/student/Tests"
+}
+
+route StudentLibraryRoute { path: "/student/library", to: StudentLibraryPage }
+page StudentLibraryPage {
+  authRequired: true,
+  component: import { StudentLibraryPage } from "@src/pages/student/Library"
+}
+
+route StudentStudyHubRoute { path: "/student/study-hub", to: StudentStudyHubPage }
+page StudentStudyHubPage {
+  authRequired: true,
+  component: import { StudentStudyHubPage } from "@src/pages/student/StudyHub"
+}
+
+route StudentTasksRoute { path: "/student/tasks", to: StudentTasksPage }
+page StudentTasksPage {
+  authRequired: true,
+  component: import { StudentTasksPage } from "@src/pages/student/Tasks"
+}
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
+
+query getAssignments {
+  fn: import { getAssignments } from "@src/queries/assignments",
+  entities: [Assignment, Submission]
+}
+
+query getAssignment {
+  fn: import { getAssignment } from "@src/queries/assignments",
+  entities: [Assignment, Submission, User]
+}
+
+query getTests {
+  fn: import { getTests } from "@src/queries/tests",
+  entities: [Test, TestAttempt]
+}
+
+query getTest {
+  fn: import { getTest } from "@src/queries/tests",
+  entities: [Test, TestAttempt, User]
+}
+
+query getMyTestAttempts {
+  fn: import { getMyTestAttempts } from "@src/queries/tests",
+  entities: [TestAttempt, Test]
+}
+
+query getSubmissions {
+  fn: import { getSubmissions } from "@src/queries/submissions",
+  entities: [Submission, User, Assignment]
+}
+
+query getMySubmissions {
+  fn: import { getMySubmissions } from "@src/queries/submissions",
+  entities: [Submission, Assignment]
+}
+
+query getLibraryItems {
+  fn: import { getLibraryItems } from "@src/queries/library",
+  entities: [LibraryItem, User]
+}
+
+query getTeacherDashboardStats {
+  fn: import { getTeacherDashboardStats } from "@src/queries/dashboard",
+  entities: [Assignment, Test, Submission, User]
+}
+
+query getStudentDashboardStats {
+  fn: import { getStudentDashboardStats } from "@src/queries/dashboard",
+  entities: [Assignment, Submission, TestAttempt, Test]
+}
+
+query getTasks {
+  fn: import { getTasks } from "@src/queries/tasks",
+  entities: [Task, User]
+}
+
+query getMyTasks {
+  fn: import { getMyTasks } from "@src/queries/tasks",
+  entities: [Task]
+}
+
+query getStudents {
+  fn: import { getStudents } from "@src/queries/tasks",
+  entities: [User]
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+
+action createAssignment {
+  fn: import { createAssignment } from "@src/actions/assignments",
+  entities: [Assignment]
+}
+
+action updateAssignment {
+  fn: import { updateAssignment } from "@src/actions/assignments",
+  entities: [Assignment]
+}
+
+action deleteAssignment {
+  fn: import { deleteAssignment } from "@src/actions/assignments",
+  entities: [Assignment]
+}
+
+action submitAssignment {
+  fn: import { submitAssignment } from "@src/actions/assignments",
+  entities: [Submission]
+}
+
+action createTest {
+  fn: import { createTest } from "@src/actions/tests",
+  entities: [Test]
+}
+
+action updateTest {
+  fn: import { updateTest } from "@src/actions/tests",
+  entities: [Test]
+}
+
+action deleteTest {
+  fn: import { deleteTest } from "@src/actions/tests",
+  entities: [Test]
+}
+
+action submitTestAttempt {
+  fn: import { submitTestAttempt } from "@src/actions/tests",
+  entities: [TestAttempt, Test]
+}
+
+action gradeSubmission {
+  fn: import { gradeSubmission } from "@src/actions/submissions",
+  entities: [Submission]
+}
+
+action createLibraryItem {
+  fn: import { createLibraryItem } from "@src/actions/library",
+  entities: [LibraryItem]
+}
+
+action deleteLibraryItem {
+  fn: import { deleteLibraryItem } from "@src/actions/library",
+  entities: [LibraryItem]
+}
+
+action getAiStudyGuide {
+  fn: import { getAiStudyGuide } from "@src/actions/ai",
+  entities: []
+}
+
+action gradeWithAi {
+  fn: import { gradeWithAi } from "@src/actions/ai",
+  entities: []
+}
+
+action createTask {
+  fn: import { createTask } from "@src/actions/tasks",
+  entities: [Task]
+}
+
+action updateTask {
+  fn: import { updateTask } from "@src/actions/tasks",
+  entities: [Task]
+}
+
+action deleteTask {
+  fn: import { deleteTask } from "@src/actions/tasks",
+  entities: [Task]
+}
+
+action completeTask {
+  fn: import { completeTask } from "@src/actions/tasks",
+  entities: [Task]
+}

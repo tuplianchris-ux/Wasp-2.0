@@ -4,6 +4,7 @@ import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import axios from "axios";
 import apiService, { isUsingRealAPI } from "./services/apiService";
+import { getMockUserSync } from "./services/dataService";
 import { getDefaultThemeId, getTheme, applyTheme as doApplyTheme, themes as themeList } from "./lib/themes";
 import { getDefaultFontId, getFont, applyFont as doApplyFont } from "./lib/fonts";
 
@@ -118,31 +119,37 @@ function ThemeProvider({ children }) {
 
 // Auth Provider
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() =>
+    isUsingRealAPI() ? null : getMockUserSync()
+  );
+  const [loading, setLoading] = useState(() => !isUsingRealAPI());
   const [token, setToken] = useState(() => localStorage.getItem("token"));
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const justAuth = sessionStorage.getItem("just_authenticated");
-      if (!justAuth) {
-        await new Promise(r => setTimeout(r, 150));
-      } else {
-        sessionStorage.removeItem("just_authenticated");
-      }
-
-      try {
-        const response = await apiService.auth.getCurrentUser();
-        setUser(response);
-      } catch (e) {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem("token");
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkAuth();
+    if (isUsingRealAPI()) {
+      const checkAuth = async () => {
+        const justAuth = sessionStorage.getItem("just_authenticated");
+        if (!justAuth) {
+          await new Promise(r => setTimeout(r, 150));
+        } else {
+          sessionStorage.removeItem("just_authenticated");
+        }
+        try {
+          const response = await apiService.auth.getCurrentUser();
+          setUser(response);
+        } catch (e) {
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem("token");
+        } finally {
+          setLoading(false);
+        }
+      };
+      checkAuth();
+    } else {
+      // Mock mode: sync with localStorage in case it was updated
+      apiService.auth.getCurrentUser().then(setUser).catch(() => {});
+    }
   }, [token]);
 
   const login = async (email, password) => {
@@ -185,6 +192,16 @@ function AuthProvider({ children }) {
   );
 }
 
+// Mock mode indicator (demo data, no backend)
+function MockModeBanner() {
+  if (isUsingRealAPI()) return null;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-40 py-1.5 px-4 text-center text-xs bg-amber-500/90 text-amber-950 font-medium">
+      Using demo data – no backend
+    </div>
+  );
+}
+
 // Protected Route
 function ProtectedRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
@@ -216,8 +233,8 @@ function AppRouter() {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/" element={isUsingRealAPI() ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/auth" element={isUsingRealAPI() ? <AuthPage /> : <Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
       </Route>
@@ -271,6 +288,7 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
+          <MockModeBanner />
           <AppRouter />
           <VisionaryChatbox />
           <Toaster position="top-right" />

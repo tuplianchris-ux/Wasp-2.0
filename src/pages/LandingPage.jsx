@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { AuthContext, ThemeContext } from "../App";
+import { isUsingRealAPI } from "../services/apiService";
 import { GlitchText, GradientText, TypewriterText, HighlightWord } from "../lib/animations";
 import { 
   CheckSquare, 
@@ -66,7 +67,7 @@ export default function LandingPage() {
               {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
             
-            {user ? (
+            {(user || !isUsingRealAPI()) ? (
               <Button onClick={() => navigate("/dashboard")} data-testid="go-to-dashboard">
                 Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

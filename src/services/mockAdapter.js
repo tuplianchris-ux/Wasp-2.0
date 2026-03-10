@@ -24,7 +24,7 @@ const mockUser = {
   bio: 'High school student passionate about learning and growth',
   xp: 1250,
   coins: 350,
-  level: 3,
+  level: 5,
   is_premium: false,
   avatar_frame: null,
   badges: ['early_adopter', 'week_streak'],

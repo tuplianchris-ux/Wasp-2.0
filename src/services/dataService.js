@@ -28,7 +28,7 @@ const generateMockUsers = () => [
     bio: 'High school student passionate about learning and growth',
     xp: 1250,
     coins: 350,
-    level: 3,
+    level: 5,
     is_premium: false,
     avatar_frame: null,
     badges: ['early_adopter', 'week_streak'],
@@ -53,53 +53,169 @@ const generateMockUsers = () => [
   }
 ];
 
-const generateMockTasks = (userId) => [
-  {
-    task_id: generateId('task'),
-    user_id: userId,
-    title: 'Complete Math Homework',
-    description: 'Finish calculus problems 1-20 from Chapter 5',
-    due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'academics',
-    is_template: false,
-    completed: false,
-    progress: 60,
-    priority: 'high',
-    tags: ['math', 'homework', 'calculus'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    task_id: generateId('task'),
-    user_id: userId,
-    title: 'Study for SAT Vocabulary',
-    description: 'Review 50 new vocabulary words for upcoming SAT',
-    due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'test_prep',
-    is_template: false,
-    completed: false,
-    progress: 30,
-    priority: 'medium',
-    tags: ['sat', 'vocabulary', 'test_prep'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    task_id: generateId('task'),
-    user_id: userId,
-    title: 'Essay Outline',
-    description: 'Create outline for English literature essay',
-    due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    category: 'academics',
-    is_template: false,
-    completed: false,
-    progress: 0,
-    priority: 'high',
-    tags: ['english', 'essay', 'writing'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+const getRecentDates = (daysBack) => {
+  const out = [];
+  for (let i = 0; i <= daysBack; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    out.push(d.toISOString().split('T')[0]);
   }
-];
+  return out;
+};
+
+const generateMockTasks = (userId) => {
+  const today = new Date().toISOString().split('T')[0];
+  const baseTasks = [
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Complete Math Homework',
+      description: 'Finish calculus problems 1-20 from Chapter 5',
+      due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: true,
+      progress: 100,
+      priority: 'high',
+      tags: ['math', 'homework', 'calculus'],
+      streak: 7,
+      check_ins: getRecentDates(6).concat([today]),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Study for SAT Vocabulary',
+      description: 'Review 50 new vocabulary words for upcoming SAT',
+      due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'test_prep',
+      is_template: false,
+      completed: true,
+      progress: 100,
+      priority: 'medium',
+      tags: ['sat', 'vocabulary', 'test_prep'],
+      streak: 3,
+      check_ins: getRecentDates(2).concat([today]),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Essay Outline',
+      description: 'Create outline for English literature essay',
+      due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: true,
+      progress: 100,
+      priority: 'high',
+      tags: ['english', 'essay', 'writing'],
+      streak: 2,
+      check_ins: getRecentDates(1).concat([today]),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Read History Chapter 4',
+      description: 'Read and take notes on World War I',
+      due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: true,
+      progress: 100,
+      priority: 'medium',
+      tags: ['history', 'reading'],
+      streak: 1,
+      check_ins: [today],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Practice Spanish Verbs',
+      description: 'Conjugate 20 verbs in present tense',
+      due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: true,
+      progress: 100,
+      priority: 'medium',
+      tags: ['spanish', 'language'],
+      streak: 4,
+      check_ins: getRecentDates(3).concat([today]),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Physics Problem Set 2',
+      description: 'Complete problems 1-15 from Chapter 3',
+      due_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: false,
+      progress: 60,
+      priority: 'high',
+      tags: ['physics', 'homework'],
+      streak: 0,
+      check_ins: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'SAT Math Practice',
+      description: 'Complete one full math section timed',
+      due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'test_prep',
+      is_template: false,
+      completed: false,
+      progress: 30,
+      priority: 'high',
+      tags: ['sat', 'math'],
+      streak: 0,
+      check_ins: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      task_id: generateId('task'),
+      user_id: userId,
+      title: 'Lab Report Draft',
+      description: 'Write first draft of chemistry lab report',
+      due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      category: 'academics',
+      is_template: false,
+      completed: false,
+      progress: 0,
+      priority: 'medium',
+      tags: ['chemistry', 'lab', 'writing'],
+      streak: 0,
+      check_ins: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
+  // For demo user return all 8; for others return first 3 to keep storage smaller
+  if (userId === 'user_demo_001') {
+    return baseTasks;
+  }
+  return baseTasks.slice(0, 3).map(t => ({
+    ...t,
+    task_id: generateId('task'),
+    completed: false,
+    progress: t.title.includes('Math') ? 60 : t.title.includes('SAT') ? 30 : 0,
+    streak: 0,
+    check_ins: []
+  }));
+};
 
 const generateMockNotes = (userId) => [
   {
@@ -456,6 +572,13 @@ const initializeMockData = () => {
     saveToLocalStorage('community_data', communityData);
   }
 };
+
+/** Synchronous mock user for initial auth state (mock mode). Same shape as getCurrentUser(). */
+export function getMockUserSync() {
+  const users = loadFromLocalStorage('users', []);
+  if (users && users.length > 0) return users[0];
+  return generateMockUsers()[0];
+}
 
 // Data Service API
 class DataService {

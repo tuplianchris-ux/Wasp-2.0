@@ -1,39 +1,46 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, FileText, Layers, Brain } from "lucide-react";
+import { Sparkles, FileText, Layers, Brain, Presentation, BookOpen } from "lucide-react";
 import UserMessage from "./UserMessage";
 import AssistantMessage from "./AssistantMessage";
 
-function EmptyState() {
+function EmptyState({ onModeChange }) {
+  const quickModes = [
+    { id: "summarize", icon: FileText, label: "Summary", desc: "Condense into key points" },
+    { id: "flashcards", icon: Layers, label: "Flashcards", desc: "Term + definition cards" },
+    { id: "quiz", icon: Brain, label: "Quiz", desc: "Multiple choice / short answer" },
+  ];
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-center px-4 py-16 text-center"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center justify-center px-4 py-20 text-center"
     >
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-hub-elevated">
-        <Sparkles className="h-8 w-8 text-hub-accent animate-pulse" />
+      <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-hub-elevated">
+        <Sparkles className="h-10 w-10 text-hub-accent" />
       </div>
-      <h2 className="font-hub-sans text-xl font-semibold text-hub-text">
+      <h2 className="font-hub-sans text-2xl font-semibold text-hub-text">
         What are you studying today?
       </h2>
-      <p className="mt-2 max-w-md font-hub-sans text-sm text-hub-muted">
-        Paste notes, upload a file, or drop a link — then choose your study mode below.
+      <p className="mt-2.5 max-w-sm font-hub-sans text-sm text-hub-muted">
+        Upload a file, paste text, or type a topic below.
       </p>
-      <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
-        {[
-          { icon: FileText, label: "Summarize", desc: "Distill any content into clear notes" },
-          { icon: Brain, label: "Quiz", desc: "Test yourself with generated questions" },
-          { icon: Layers, label: "Flashcards", desc: "Create a deck to review and memorize" },
-        ].map(({ icon: Icon, label, desc }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-hub-border bg-hub-surface p-4 text-left transition hover:border-hub-border"
+      <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-3">
+        {quickModes.map(({ id, icon: Icon, label, desc }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onModeChange?.(id)}
+            className="flex flex-col items-start rounded-2xl border border-hub-border bg-hub-surface p-4 text-left transition hover:-translate-y-0.5 hover:border-hub-accent/40 hover:bg-hub-elevated active:scale-[0.98]"
           >
-            <Icon className="mb-2 h-5 w-5 text-hub-accent" />
-            <p className="font-hub-sans font-medium text-hub-text">{label}</p>
-            <p className="mt-0.5 font-hub-sans text-xs text-hub-muted">{desc}</p>
-          </div>
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-hub-elevated">
+              <Icon className="h-4 w-4 text-hub-accent" />
+            </div>
+            <p className="font-hub-sans text-sm font-semibold text-hub-text">{label}</p>
+            <p className="mt-1 font-hub-sans text-xs leading-relaxed text-hub-muted">{desc}</p>
+          </button>
         ))}
       </div>
     </motion.div>
@@ -42,6 +49,7 @@ function EmptyState() {
 
 export default function ChatArea({
   messages,
+  onModeChange,
   onRegenerateMessage,
   onCopy,
   onDownload,
@@ -85,7 +93,7 @@ export default function ChatArea({
       >
         <div className="mx-auto max-w-3xl space-y-6">
           {messages.length === 0 ? (
-            <EmptyState />
+            <EmptyState onModeChange={onModeChange} />
           ) : (
             messages.map((msg) =>
               msg.role === "user" ? (

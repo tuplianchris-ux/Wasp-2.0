@@ -187,7 +187,7 @@ export default function Profile() {
   };
 
   const handleUseTemplate = (template) => {
-    navigate("/tasks", { state: { useTemplate: template } });
+    navigate("/notes-studio", { state: { useTemplate: template } });
   };
 
   if (loading) {

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, Brain, Layers } from "lucide-react";
+import { FileText, Brain, Layers, BookOpen, Presentation } from "lucide-react";
 
-const MODES = [
-  { id: "summarize", label: "Summarize", icon: FileText },
-  { id: "quiz", label: "Quiz", icon: Brain },
-  { id: "flashcards", label: "Flashcards", icon: Layers },
+export const MODES = [
+  { id: "summarize", label: "Summary", icon: FileText, desc: "Condense into key points" },
+  { id: "notes", label: "Notes", icon: BookOpen, desc: "Structured notes with headings" },
+  { id: "slides", label: "Slides", icon: Presentation, desc: "Outline a slide deck" },
+  { id: "flashcards", label: "Flashcards", icon: Layers, desc: "Term + definition cards" },
+  { id: "quiz", label: "Quiz", icon: Brain, desc: "Multiple choice / short answer" },
 ];
 
 export default function ModePopover({ open, onClose, value, onChange, anchorRef }) {
@@ -14,7 +16,12 @@ export default function ModePopover({ open, onClose, value, onChange, anchorRef 
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target) && anchorRef?.current && !anchorRef.current.contains(e.target)) {
+      if (
+        ref.current &&
+        !ref.current.contains(e.target) &&
+        anchorRef?.current &&
+        !anchorRef.current.contains(e.target)
+      ) {
         onClose();
       }
     };
@@ -27,11 +34,11 @@ export default function ModePopover({ open, onClose, value, onChange, anchorRef 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.95, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: 4 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
-      className="rounded-xl border border-hub-border bg-hub-elevated py-1 shadow-xl"
+      className="absolute bottom-full left-0 z-50 mb-2 w-56 rounded-2xl border border-hub-border bg-hub-surface p-1.5 shadow-xl"
     >
       {MODES.map((mode) => {
         const Icon = mode.icon;
@@ -44,17 +51,30 @@ export default function ModePopover({ open, onClose, value, onChange, anchorRef 
               onChange(mode.id);
               onClose();
             }}
-            className={`flex w-full items-center gap-3 px-4 py-2.5 font-hub-sans text-sm transition ${
-              isActive ? "bg-hub-accent/15 text-hub-accent" : "text-hub-text hover:bg-hub-elevated"
+            className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+              isActive
+                ? "bg-hub-accent/15 text-hub-accent"
+                : "text-hub-text hover:bg-hub-elevated"
             }`}
           >
-            <Icon className="h-4 w-4 shrink-0" />
-            {mode.label}
+            <Icon
+              className={`mt-0.5 h-4 w-4 shrink-0 ${
+                isActive ? "text-hub-accent" : "text-hub-muted"
+              }`}
+            />
+            <div>
+              <p className="font-hub-sans text-sm font-medium leading-tight">{mode.label}</p>
+              <p
+                className={`mt-0.5 font-hub-sans text-xs leading-tight ${
+                  isActive ? "text-hub-accent/70" : "text-hub-muted"
+                }`}
+              >
+                {mode.desc}
+              </p>
+            </div>
           </button>
         );
       })}
     </motion.div>
   );
 }
-
-export { MODES };

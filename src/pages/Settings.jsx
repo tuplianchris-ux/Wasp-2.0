@@ -7,6 +7,7 @@ import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { Separator } from "../components/ui/separator";
 import { Input } from "../components/ui/input";
+import { Progress } from "../components/ui/progress";
 import { AuthContext, ThemeContext } from "../App";
 import FounderBadge from "../components/FounderBadge";
 import { toast } from "sonner";
@@ -14,9 +15,9 @@ import { isFounder, getFounderMeta, canUpgrade, nextTier, TIER_META, formatPurch
 import { themes } from "../lib/themes";
 import { fonts } from "../lib/fonts";
 import PageHeader from "../components/PageHeader";
-import { 
-  Bell, 
-  Shield, 
+import {
+  Bell,
+  Shield,
   Palette,
   LogOut,
   Crown,
@@ -29,7 +30,59 @@ import {
   Lock,
   Check,
   Type,
+  RotateCcw,
+  Zap,
+  CreditCard,
+  Coins,
+  ChevronDown,
 } from "lucide-react";
+
+const PLAN_LIMITS = {
+  free:    { daily: 6,  weekly: 30  },
+  teacher: { daily: 20, weekly: 100 },
+  investor:{ daily: 10, weekly: 50  },
+  pro:     { daily: 25, weekly: 150 },
+  founder: { daily: 60, weekly: 400 },
+};
+
+const PLAN_TABLE = [
+  { label: "Free",    daily: 6,  weekly: 30  },
+  { label: "Pro",     daily: 25, weekly: 150 },
+  { label: "Founder", daily: 60, weekly: 400 },
+];
+
+const CREDIT_PACKS = [
+  { id: "starter",  label: "Starter",  calls: 20,  price: 0.99, popular: true  },
+  { id: "standard", label: "Standard", calls: 60,  price: 2.49, popular: false },
+  { id: "power",    label: "Power",    calls: 150, price: 4.99, popular: false },
+];
+
+function usageBarColor(pct) {
+  if (pct > 80) return "bg-red-500";
+  if (pct >= 50) return "bg-amber-500";
+  return "bg-green-500";
+}
+
+function UsageBar({ label, subtext, used, limit }) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  const color = usageBarColor(pct);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div>
+          <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs text-muted-foreground ml-2">{subtext}</span>
+        </div>
+        <span className={`text-xs font-semibold tabular-nums ${pct > 80 ? "text-red-500" : pct >= 50 ? "text-amber-500" : "text-muted-foreground"}`}>
+          {used} / {limit} calls
+        </span>
+      </div>
+      <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 const PREVIEW_PLACEHOLDER = "The quick brown fox jumps over the lazy dog";
 
@@ -49,6 +102,24 @@ export default function Settings() {
   const founderMeta   = getFounderMeta(user);
   const purchaseDate  = formatPurchaseDate(user?.founder_paid_at);
   const upgradeTier   = canUpgrade(user) ? nextTier(user) : null;
+
+  // AI Usage state
+  const [showPlanLimits, setShowPlanLimits] = useState(false);
+  const [extraUsageEnabled, setExtraUsageEnabled] = useState(false);
+  const [coinPacks, setCoinPacks] = useState(1);
+  const [selectedCreditPack, setSelectedCreditPack] = useState("starter");
+
+  const planKey = founder ? "founder" : user?.is_premium ? "pro" : user?.role === "teacher" ? "teacher" : user?.role === "investor" ? "investor" : "free";
+  const limits = PLAN_LIMITS[planKey] ?? PLAN_LIMITS.free;
+  const mockUsage = {
+    daily:  { used: 4,  limit: limits.daily,  resetsIn: "3 hr 34 min" },
+    weekly: { used: 19, limit: limits.weekly, resetsOn: "Tue 10:00 PM" },
+    plan: planKey,
+  };
+
+  const selectedPack = CREDIT_PACKS.find((p) => p.id === selectedCreditPack);
+  const coinCost = coinPacks * 50;
+  const userCoins = user?.coins ?? 0;
 
   const handleLogout = async () => {
     await logout();
@@ -171,6 +242,195 @@ export default function Settings() {
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                     </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* ── AI Usage ────────────────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="font-heading text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" /> AI Usage
+                </CardTitle>
+                <CardDescription>Track your generation credits this session and week</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                {/* Free-tier upgrade callout */}
+                {(planKey === "free" || planKey === "teacher" || planKey === "investor") && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-primary/5 border border-primary/20 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-sm text-foreground">
+                        Upgrade to Pro for <span className="font-semibold">25 daily calls</span> and priority generation
+                      </p>
+                    </div>
+                    <Link to="/pricing" className="text-xs font-semibold text-primary whitespace-nowrap hover:underline">
+                      Upgrade →
+                    </Link>
+                  </div>
+                )}
+
+                {/* Usage bars */}
+                <div className="space-y-4">
+                  <UsageBar
+                    label="Today"
+                    subtext={`Resets in ${mockUsage.daily.resetsIn}`}
+                    used={mockUsage.daily.used}
+                    limit={mockUsage.daily.limit}
+                  />
+                  <UsageBar
+                    label="This Week"
+                    subtext={`Resets ${mockUsage.weekly.resetsOn}`}
+                    used={mockUsage.weekly.used}
+                    limit={mockUsage.weekly.limit}
+                  />
+                </div>
+
+                {/* Last updated */}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => toast.success("Usage refreshed")}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </button>
+                  Last updated: less than a minute ago
+                </div>
+
+                {/* Plan limits collapsible */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanLimits((v) => !v)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPlanLimits ? "rotate-180" : ""}`} />
+                    View plan limits
+                  </button>
+                  {showPlanLimits && (
+                    <div className="mt-2 rounded-xl border border-border overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-secondary/50">
+                            <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Plan</th>
+                            <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Daily</th>
+                            <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Weekly</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {PLAN_TABLE.map((row, i) => (
+                            <tr key={row.label} className={i < PLAN_TABLE.length - 1 ? "border-t border-border" : ""}>
+                              <td className="px-3 py-2 text-muted-foreground">{row.label}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{row.daily}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{row.weekly}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Extra Usage toggle */}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Extra Usage</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Keep generating after your limit using coins or a credit pack</p>
+                  </div>
+                  <Switch checked={extraUsageEnabled} onCheckedChange={setExtraUsageEnabled} />
+                </div>
+
+                {/* Buy options panel */}
+                {extraUsageEnabled && (
+                  <div className="grid sm:grid-cols-2 gap-3">
+
+                    {/* Option A — Coins */}
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold flex items-center gap-1.5"><Coins className="w-4 h-4 text-amber-400" /> Use Coins</p>
+                        <p className="text-xs text-muted-foreground mt-1">Spend coins earned from studying for extra AI calls.</p>
+                        <p className="text-xs text-muted-foreground">Rate: <span className="font-medium text-foreground">50 coins = 5 extra calls</span></p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{userCoins} coins available</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCoinPacks((p) => Math.max(1, p - 1))}
+                          className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-sm hover:bg-secondary transition-colors"
+                        >−</button>
+                        <span className="text-sm font-medium w-16 text-center">{coinPacks} pack{coinPacks > 1 ? "s" : ""}</span>
+                        <button
+                          type="button"
+                          onClick={() => setCoinPacks((p) => p + 1)}
+                          className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-sm hover:bg-secondary transition-colors"
+                        >+</button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">= {coinPacks * 5} extra calls for {coinCost} coins</p>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={userCoins < coinCost}
+                        onClick={() => toast.success(`${coinPacks * 5} extra calls added! ${coinCost} coins deducted.`)}
+                      >
+                        Buy with Coins
+                      </Button>
+                      {userCoins < coinCost && (
+                        <p className="text-[10px] text-destructive">Not enough coins</p>
+                      )}
+                    </div>
+
+                    {/* Option B — Credit Packs */}
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold flex items-center gap-1.5"><CreditCard className="w-4 h-4 text-primary" /> Credit Packs</p>
+                        <p className="text-xs text-muted-foreground mt-1">One-time purchases. Never expire.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        {CREDIT_PACKS.map((pack) => (
+                          <button
+                            key={pack.id}
+                            type="button"
+                            onClick={() => setSelectedCreditPack(pack.id)}
+                            className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-all ${
+                              selectedCreditPack === pack.id
+                                ? "border-primary bg-primary/5 text-foreground"
+                                : "border-border hover:border-primary/40 text-muted-foreground"
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {pack.label}
+                              {pack.popular && (
+                                <span className="text-[9px] font-bold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">Popular</span>
+                              )}
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{pack.calls} calls</span>
+                              <span className="font-semibold text-foreground">${pack.price}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => toast.info("Redirecting to checkout... (coming soon)")}
+                      >
+                        Buy Pack — ${selectedPack?.price}
+                      </Button>
+                    </div>
+
                   </div>
                 )}
               </CardContent>

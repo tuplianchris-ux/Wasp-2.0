@@ -5,17 +5,20 @@
 import { createClient, LiveList, LiveMap } from "@liveblocks/client";
 import { createRoomContext } from "@liveblocks/react";
 
-const PUBLIC_KEY = process.env.REACT_APP_LIVEBLOCKS_PUBLIC_KEY;
+const RAW_KEY = process.env.REACT_APP_LIVEBLOCKS_PUBLIC_KEY;
+
+// Only treat the key as valid if it actually starts with "pk_"
+const PUBLIC_KEY = RAW_KEY && RAW_KEY.startsWith("pk_") ? RAW_KEY : null;
 
 if (!PUBLIC_KEY) {
   console.warn(
-    "REACT_APP_LIVEBLOCKS_PUBLIC_KEY is not set. Study Rooms will not connect."
+    "REACT_APP_LIVEBLOCKS_PUBLIC_KEY is missing or invalid. Study Rooms will not connect."
   );
 }
 
-export const client = createClient({
-  publicApiKey: PUBLIC_KEY || "no-key",
-});
+export const client = PUBLIC_KEY
+  ? createClient({ publicApiKey: PUBLIC_KEY })
+  : null;
 
 /** Room ID for the lobby where room list is stored */
 export const LOBBY_ROOM_ID = "study-rooms-lobby";
@@ -94,6 +97,19 @@ export function getStudyRoomInitialStorage() {
   };
 }
 
+const roomContext = client
+  ? createRoomContext(client)
+  : {
+      RoomProvider: ({ children }) => children,
+      useRoom: () => null,
+      useStorage: () => null,
+      useMutation: () => () => {},
+      useOthers: () => [],
+      useSelf: () => null,
+      useUpdateMyPresence: () => () => {},
+      useStatus: () => "closed",
+    };
+
 export const {
   RoomProvider,
   useRoom,
@@ -103,4 +119,4 @@ export const {
   useSelf,
   useUpdateMyPresence,
   useStatus,
-} = createRoomContext(client);
+} = roomContext;

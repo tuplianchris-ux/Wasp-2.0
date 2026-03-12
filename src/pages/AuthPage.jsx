@@ -1,5 +1,6 @@
 import { useState, useContext } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
+import { isUsingRealAPI } from "../services/apiService";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -8,9 +9,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { AuthContext, ThemeContext, API } from "../App";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, Moon, Sun, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Sparkles, ArrowLeft, Moon, Sun, LockKeyhole, ShieldCheck, GraduationCap, BookOpen, Briefcase, Info, X } from "lucide-react";
 import { loginSchema, registerSchema, formatZodErrors } from "../lib/validation";
 import axios from "axios";
+
+const ROLE_OPTIONS = [
+  {
+    value: 'student',
+    icon: GraduationCap,
+    label: 'Student',
+    description: "I'm here to study, track progress, and get discovered",
+  },
+  {
+    value: 'teacher',
+    icon: BookOpen,
+    label: 'Teacher',
+    description: 'I create assignments and monitor my students',
+  },
+  {
+    value: 'investor',
+    icon: Briefcase,
+    label: 'Investor',
+    description: "I'm looking for talented students to support",
+  },
+];
 
 export default function AuthPage() {
   const [loginEmail, setLoginEmail] = useState("");
@@ -18,7 +40,10 @@ export default function AuthPage() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
+  const [selectedRole, setSelectedRole] = useState('student');
   const [loading, setLoading] = useState(false);
+  const [showInvestorPopup, setShowInvestorPopup] = useState(false);
+  const [showRolePopup, setShowRolePopup] = useState(null); // 'student' | 'teacher' | null
   const [loginErrors, setLoginErrors] = useState({});
   const [registerErrors, setRegisterErrors] = useState({});
 
@@ -33,8 +58,15 @@ export default function AuthPage() {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
 
-  // Declarative redirect avoids navigate-in-render flicker loops.
-  if (user) return <Navigate to="/dashboard" replace />;
+  // In real API mode, redirect already-logged-in users away from auth.
+  // In mock mode, keep the page accessible so the role flow can be tested.
+  if (user && isUsingRealAPI()) return <Navigate to="/dashboard" replace />;
+
+  const getRoleRoute = (role) => {
+    if (role === 'teacher') return '/teacher';
+    if (role === 'investor') return '/investor';
+    return '/dashboard';
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -46,9 +78,9 @@ export default function AuthPage() {
     }
     setLoading(true);
     try {
-      await login(loginEmail, loginPassword);
+      const response = await login(loginEmail, loginPassword);
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate(getRoleRoute(response.user?.role));
     } catch (error) {
       // apiService throws errors with .response = { status, data }
       const status = error.status ?? error.response?.status;
@@ -82,9 +114,9 @@ export default function AuthPage() {
     }
     setLoading(true);
     try {
-      await register(registerEmail, registerPassword, registerName);
+      const response = await register(registerEmail, registerPassword, registerName, selectedRole);
       toast.success("Account created successfully!");
-      navigate("/dashboard");
+      navigate(getRoleRoute(response.user?.role ?? selectedRole));
     } catch (error) {
       const detail = error.response?.data?.detail;
       const msg = typeof detail === "object" ? detail?.message || JSON.stringify(detail) : (detail || error.message);
@@ -258,6 +290,58 @@ export default function AuthPage() {
                         )}
                       </div>
                       <div className="space-y-2">
+                        <Label>I am a…</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {ROLE_OPTIONS.map(({ value, icon: Icon, label, description }) => {
+                            if (value === 'investor') {
+                              return (
+                                <div
+                                  key={value}
+                                  className="relative flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center border-border text-muted-foreground opacity-70 cursor-not-allowed select-none"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setShowInvestorPopup(true); }}
+                                    className="absolute top-1 right-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    title="Learn more"
+                                  >
+                                    <Info className="h-3 w-3" />
+                                  </button>
+                                  <Icon className="h-5 w-5 shrink-0" />
+                                  <span className="text-xs font-semibold leading-tight">{label}</span>
+                                  <span className="text-[9px] font-medium text-amber-500 leading-tight">Coming Soon</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={value} className="relative">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setShowRolePopup(value); }}
+                                  className="absolute top-1 right-1 z-10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                  title="Learn more"
+                                >
+                                  <Info className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedRole(value)}
+                                  className={`w-full flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors ${
+                                    selectedRole === value
+                                      ? 'border-primary bg-primary/10 text-primary'
+                                      : 'border-border hover:bg-secondary text-foreground'
+                                  }`}
+                                >
+                                  <Icon className="h-5 w-5 shrink-0" />
+                                  <span className="text-xs font-semibold leading-tight">{label}</span>
+                                  <span className="text-[10px] text-muted-foreground leading-tight">{description}</span>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="register-email">Email</Label>
                         <Input
                           id="register-email"
@@ -322,6 +406,128 @@ export default function AuthPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* ── Student / Teacher Info Popup ───────────────────────────────── */}
+      <AnimatePresence>
+        {showRolePopup && (
+          <motion.div
+            key="role-popup"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowRolePopup(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="border-primary/30 shadow-xl">
+                <CardHeader className="text-center pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1" />
+                    <div className="flex justify-center mb-3 flex-1">
+                      {showRolePopup === 'student'
+                        ? <GraduationCap className="w-10 h-10 text-primary" />
+                        : <BookOpen className="w-10 h-10 text-primary" />}
+                    </div>
+                    <div className="flex-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowRolePopup(null)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <CardTitle className="font-heading text-xl">
+                    {showRolePopup === 'student' ? 'Student / Learner' : 'Teacher / Tutor'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2 pb-5">
+                  {showRolePopup === 'student' ? (
+                    <>
+                      <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                        No more forgetting. No more falling behind. Just you, your goals, and an AI that actually has your back.
+                      </p>
+                      <p className="text-sm text-foreground text-center leading-relaxed mt-3 font-medium">
+                        Your personal command center for school, life, and everything in between.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                        Less grading. Less guessing. More teaching.
+                      </p>
+                      <p className="text-sm text-foreground text-center leading-relaxed mt-3 font-medium">
+                        Build smarter assignments, understand every student deeply, and let AI handle the busywork — so you can do what you actually came here to do.
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Investor Coming Soon Popup ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showInvestorPopup && (
+          <motion.div
+            key="investor-popup"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowInvestorPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="border-amber-500/40 shadow-xl">
+                <CardHeader className="text-center pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1" />
+                    <div className="flex justify-center mb-3 flex-1">
+                      <Briefcase className="w-10 h-10 text-amber-500" />
+                    </div>
+                    <div className="flex-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowInvestorPopup(false)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <CardTitle className="font-heading text-xl">Investor Hub</CardTitle>
+                  <span className="inline-block text-[11px] font-semibold text-amber-500 bg-amber-500/10 rounded-full px-2.5 py-0.5 mt-1">Coming Soon</span>
+                </CardHeader>
+                <CardContent className="pt-2 pb-5">
+                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                    Forget résumés. Real investors find real talent here — before anyone else does.
+                  </p>
+                  <p className="text-sm text-foreground text-center leading-relaxed mt-3 font-medium">
+                    The Investor Hub is coming soon. Be the first to back the next generation.
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Account Locked Overlay ─────────────────────────────────────── */}
       <AnimatePresence>

@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import SummaryView from "./SummaryView";
 import QuizView from "./QuizView";
 import FlashcardView from "./FlashcardView";
+import SlidesView from "./SlidesView";
 
 export default function AssistantMessage({
   message,
@@ -63,7 +64,12 @@ export default function AssistantMessage({
   }
 
   const handleCopy = async () => {
-    const text = mode === "summarize" ? content : JSON.stringify(data);
+    const text =
+      mode === "summarize" || mode === "notes"
+        ? content
+        : Array.isArray(data) && mode === "slides"
+        ? data.map((s) => (typeof s === "string" ? s : `${s.title || ""}\n${s.content ?? s.text ?? ""}`).trim()).join("\n\n")
+        : JSON.stringify(data);
     await navigator.clipboard.writeText(text || "");
     onCopy?.();
   };
@@ -80,9 +86,9 @@ export default function AssistantMessage({
       </div>
       <div className="min-w-0 flex-1 rounded-2xl border-l-2 border-transparent pl-1 transition-colors hover:border-hub-accent/40">
         <AnimatePresence mode="wait">
-          {mode === "summarize" && (
+          {(mode === "summarize" || mode === "notes") && (
             <motion.div
-              key="summary"
+              key={mode}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -94,7 +100,24 @@ export default function AssistantMessage({
                 onCopy={handleCopy}
                 onRegenerate={onRegenerate}
                 onDownload={(text) => onDownload?.(text)}
-                onSave={onSave ? () => onSave("summary", content) : undefined}
+                onSave={onSave ? () => onSave(mode === "notes" ? "notes" : "summary", content) : undefined}
+              />
+            </motion.div>
+          )}
+          {mode === "slides" && Array.isArray(data) && data.length > 0 && (
+            <motion.div
+              key="slides"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <SlidesView
+                slides={data}
+                onCopy={handleCopy}
+                onRegenerate={onRegenerate}
+                onDownload={(text) => onDownload?.(text)}
+                onSave={onSave ? () => onSave("slides", data) : undefined}
               />
             </motion.div>
           )}

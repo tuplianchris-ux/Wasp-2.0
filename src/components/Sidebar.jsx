@@ -17,6 +17,7 @@ import {
   HoverCardTrigger,
 } from "./ui/hover-card";
 import { AuthContext, ThemeContext } from "../App";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
 import { FounderDot } from "./FounderBadge";
 import { isFounder, getFounderMeta } from "../lib/founder";
 import {
@@ -38,15 +39,52 @@ import {
   ChevronRight,
   Trophy,
   Network,
+  ClipboardList,
+  BarChart2,
+  BookOpen,
+  Search,
+  Star,
+  Briefcase,
+  FileText,
+  Gamepad2,
+  HardDrive,
+  Archive,
+  Layers,
+  ArrowUpRight,
+  TrendingUp,
+  Brain,
 } from "lucide-react";
 import { Notebook, Books, Users, Storefront, PencilLine } from "phosphor-react";
 import PhosphorIcon from "./icons/PhosphorIcon";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebarCollapsed";
 const LEARN_ROUTES = ["/study", "/library", "/notes-studio", "/graph", "/practice", "/strengths"];
+const CLASSES_ROUTES = ["/teacher/classes", "/teacher/assignments", "/teacher/gradebook", "/teacher/students", "/teacher/students/intelligence"];
 
 function isLearnRoute(pathname) {
   return LEARN_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
+}
+
+function isClassesRoute(pathname) {
+  return CLASSES_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
+}
+
+const STORAGE_DATA = {
+  used: 1.4,
+  total: 2,
+  plan: "Free",
+  addedThisMonth: 0.2,
+  breakdown: [
+    { label: "Notes",       gb: 0.6, Icon: FileText, color: "#007aff" },
+    { label: "Whiteboards", gb: 0.4, Icon: Layers,   color: "#af52de" },
+    { label: "Files",       gb: 0.4, Icon: Archive,  color: "#ff9500" },
+  ],
+};
+
+function storageBarColor(pct) {
+  if (pct >= 80) return "bg-red-500";
+  if (pct >= 60) return "bg-amber-500";
+  return "bg-green-500";
 }
 
 /** Compact profile card at bottom of sidebar; click opens popover (Profile, Shop, Settings, theme, Log out). */
@@ -137,7 +175,18 @@ function ProfileCardWithPopover({
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user?.name}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="truncate text-sm font-medium">{user?.name}</p>
+                {user?.role === 'student' && (
+                  <span className="shrink-0 rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-blue-500 leading-none">Student</span>
+                )}
+                {user?.role === 'teacher' && (
+                  <span className="shrink-0 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-green-500 leading-none">Teacher</span>
+                )}
+                {user?.role === 'investor' && (
+                  <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-500 leading-none">Investor</span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span>Lvl {level}</span>
                 <span className="flex items-center gap-0.5">
@@ -227,7 +276,7 @@ function ProfileCardWithPopover({
 }
 
 export default function Sidebar() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, isStudent, isTeacher, isInvestor } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -240,6 +289,8 @@ export default function Sidebar() {
     }
   });
   const [learnOpen, setLearnOpen] = useState(false);
+  const [classesOpen, setClassesOpen] = useState(false);
+  const [storageOpen, setStorageOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(collapsed));
@@ -247,6 +298,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (isLearnRoute(location.pathname)) setLearnOpen(true);
+    if (isClassesRoute(location.pathname)) setClassesOpen(true);
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -267,7 +319,7 @@ export default function Sidebar() {
   const xpInLevel = xp - xpForCurrentLevel;
   const levelProgress = Math.min(100, (xpInLevel / xpForNextLevel) * 100);
 
-  const primaryItems = [
+  const studentItems = [
     { icon: <LayoutDashboard className="w-5 h-5 shrink-0" />, label: "Home", href: "/dashboard" },
     {
       key: "learn",
@@ -282,17 +334,40 @@ export default function Sidebar() {
         { icon: <Target className="w-4 h-4" />, label: "Strengths", href: "/strengths" },
       ],
     },
-    {
-      icon: <Trophy className="w-5 h-5 shrink-0" />,
-      label: "Compete",
-      href: "/competitions",
-    },
-    {
-      icon: <PhosphorIcon icon={Users} className="w-5 h-5 shrink-0" />,
-      label: "Community",
-      href: "/community",
-    },
+    { icon: <Trophy className="w-5 h-5 shrink-0" />, label: "Compete", href: "/competitions" },
+    { icon: <PhosphorIcon icon={Users} className="w-5 h-5 shrink-0" />, label: "Community", href: "/community" },
   ];
+
+  const teacherItems = [
+    { icon: <LayoutDashboard className="w-5 h-5 shrink-0" />, label: "Dashboard", href: "/teacher" },
+    {
+      key: "classes",
+      icon: <PhosphorIcon icon={Users} className="w-5 h-5 shrink-0" />,
+      label: "My Classes",
+      sub: [
+        { icon: <PhosphorIcon icon={Users} className="w-4 h-4" />, label: "Classes", href: "/teacher/classes" },
+        { icon: <ClipboardList className="w-4 h-4" />, label: "Assignments", href: "/teacher/assignments" },
+        { icon: <BarChart2 className="w-4 h-4" />, label: "Gradebook", href: "/teacher/gradebook" },
+        { icon: <GraduationCap className="w-4 h-4" />, label: "Students", href: "/teacher/students" },
+        { icon: <Brain className="w-4 h-4" />, label: "Intelligence", href: "/teacher/students/intelligence" },
+      ],
+    },
+    { icon: <Gamepad2 className="w-5 h-5 shrink-0" />, label: "Quiz Creator", href: "/teacher/ai-generator" },
+    { icon: <BookOpen className="w-5 h-5 shrink-0" />, label: "Resources", href: "/teacher/resources" },
+  ];
+
+  const investorItems = [
+    { icon: <LayoutDashboard className="w-5 h-5 shrink-0" />, label: "Dashboard", href: "/investor" },
+    { icon: <Search className="w-5 h-5 shrink-0" />, label: "Discover", href: "/investor/discover" },
+    { icon: <Star className="w-5 h-5 shrink-0" />, label: "Watchlist", href: "/investor/watchlist" },
+    { icon: <Briefcase className="w-5 h-5 shrink-0" />, label: "Opportunities", href: "/investor/opportunities" },
+    { icon: <FileText className="w-5 h-5 shrink-0" />, label: "Applications", href: "/investor/applications" },
+    { icon: <BarChart2 className="w-5 h-5 shrink-0" />, label: "Analytics", href: "/investor/analytics" },
+    { icon: <User className="w-5 h-5 shrink-0" />, label: "Profile", href: "/profile" },
+    { icon: <Settings className="w-5 h-5 shrink-0" />, label: "Settings", href: "/settings" },
+  ];
+
+  const primaryItems = isTeacher ? teacherItems : isInvestor ? investorItems : studentItems;
 
   const navLinkClass = (isActive) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border-l-2 ${
@@ -311,6 +386,27 @@ export default function Sidebar() {
   const LearnFlyout = () => (
     <div className="min-w-[180px] py-1">
       {primaryItems.find((i) => i.key === "learn").sub.map((sub) => {
+        const isActive = location.pathname === sub.href;
+        return (
+          <Link
+            key={sub.href}
+            to={sub.href}
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isActive ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
+            }`}
+          >
+            {sub.icon}
+            {sub.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+
+  const ClassesFlyout = () => (
+    <div className="min-w-[180px] py-1">
+      {primaryItems.find((i) => i.key === "classes").sub.map((sub) => {
         const isActive = location.pathname === sub.href;
         return (
           <Link
@@ -422,6 +518,67 @@ export default function Sidebar() {
             );
           }
 
+          if (item.key === "classes") {
+            const isClassesActive = item.sub.some((s) => location.pathname === s.href);
+            const isPartiallyActive = isClassesActive && !classesOpen;
+
+            if (collapsed) {
+              return (
+                <HoverCard key="classes" openDelay={200} closeDelay={100}>
+                  <HoverCardTrigger asChild>
+                    <Link
+                      to="/teacher/classes"
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                        isClassesActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"
+                      }`}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {item.icon}
+                    </Link>
+                  </HoverCardTrigger>
+                  <HoverCardContent side="right" align="start" className="w-auto p-0">
+                    <ClassesFlyout />
+                  </HoverCardContent>
+                </HoverCard>
+              );
+            }
+
+            return (
+              <Collapsible
+                key="classes"
+                open={classesOpen}
+                onOpenChange={setClassesOpen}
+                className="space-y-0.5"
+              >
+                <CollapsibleTrigger
+                  className={`label w-full ${navLinkClass(isPartiallyActive || classesOpen)}`}
+                >
+                  {item.icon}
+                  <span className="flex-1 text-left font-medium">{item.label}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${classesOpen ? "rotate-180" : ""}`}
+                  />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden transition-[max-height] duration-250 ease-out data-[state=closed]:max-h-0 data-[state=open]:max-h-[320px]">
+                  <div className="space-y-0.5 pt-0.5">
+                    {item.sub.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        to={sub.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={subLinkClass(location.pathname === sub.href)}
+                        data-testid={`nav-${sub.label.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        {sub.icon}
+                        <span>{sub.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          }
+
           const isActive = location.pathname === item.href;
           const link = (
             <Link
@@ -446,6 +603,68 @@ export default function Sidebar() {
           return <div key={item.href}>{link}</div>;
         })}
       </nav>
+
+      {/* Storage bar — students and teachers only */}
+      {(isStudent || isTeacher) && (() => {
+        const pct = Math.round((STORAGE_DATA.used / STORAGE_DATA.total) * 100);
+        const barColor = storageBarColor(pct);
+        const showUpgrade = pct >= 75;
+        if (collapsed) {
+          return (
+            <div className="shrink-0 px-2 pb-2 flex justify-center">
+              <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setStorageOpen(true)}
+                    className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors hover:bg-secondary ${
+                      pct >= 80 ? "text-red-500" : pct >= 60 ? "text-amber-500" : "text-muted-foreground"
+                    }`}
+                  >
+                    <HardDrive className="h-5 w-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{STORAGE_DATA.used} GB / {STORAGE_DATA.total} GB used</TooltipContent>
+              </Tooltip>
+            </div>
+          );
+        }
+        return (
+          <div className="shrink-0 px-3 pb-2">
+            <button
+              type="button"
+              onClick={() => setStorageOpen(true)}
+              className="w-full rounded-xl border border-border bg-secondary/40 hover:bg-secondary/80 transition-colors p-3 text-left"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <HardDrive className={`h-3.5 w-3.5 ${pct >= 80 ? "text-red-500" : pct >= 60 ? "text-amber-500" : "text-muted-foreground"}`} />
+                  <span className="text-[11px] font-medium text-foreground">{STORAGE_DATA.used} GB / {STORAGE_DATA.total} GB</span>
+                </div>
+                <span className={`text-[10px] font-semibold ${pct >= 80 ? "text-red-500" : pct >= 60 ? "text-amber-500" : "text-muted-foreground"}`}>{pct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-border overflow-hidden mb-2">
+                <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+              </div>
+              <div className="flex items-center gap-2">
+                {STORAGE_DATA.breakdown.map(({ label, gb, color }) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                    <span className="text-[9px] text-muted-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+              {showUpgrade && (
+                <div className="mt-2 pt-2 border-t border-border">
+                  <span className="text-[10px] font-semibold text-amber-500 flex items-center gap-1">
+                    <ArrowUpRight className="h-3 w-3" /> Upgrade Storage
+                  </span>
+                </div>
+              )}
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Profile card + popover — pinned bottom */}
       <ProfileCardWithPopover
@@ -507,6 +726,102 @@ export default function Sidebar() {
       </aside>
 
       <div className="md:hidden h-16" aria-hidden />
+
+      {/* Storage detail sheet */}
+      {(isStudent || isTeacher) && (
+        <Sheet open={storageOpen} onOpenChange={setStorageOpen}>
+          <SheetContent side="left" className="w-80 sm:max-w-80 flex flex-col gap-0 p-0">
+            <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5 text-muted-foreground" />
+                <SheetTitle className="font-heading text-lg">Storage</SheetTitle>
+              </div>
+              <SheetDescription>
+                {STORAGE_DATA.plan} plan · {STORAGE_DATA.total} GB total
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              {/* Big usage meter */}
+              {(() => {
+                const pct = Math.round((STORAGE_DATA.used / STORAGE_DATA.total) * 100);
+                const barColor = storageBarColor(pct);
+                return (
+                  <div>
+                    <div className="flex items-end justify-between mb-2">
+                      <div>
+                        <span className="text-3xl font-bold">{STORAGE_DATA.used}</span>
+                        <span className="text-muted-foreground ml-1 text-sm">/ {STORAGE_DATA.total} GB</span>
+                      </div>
+                      <span className={`text-sm font-semibold ${pct >= 80 ? "text-red-500" : pct >= 60 ? "text-amber-500" : "text-green-500"}`}>
+                        {pct}% used
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 rounded-full bg-border overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Breakdown */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Breakdown</p>
+                <div className="space-y-3">
+                  {STORAGE_DATA.breakdown.map(({ label, gb, Icon, color }) => {
+                    const itemPct = Math.round((gb / STORAGE_DATA.total) * 100);
+                    return (
+                      <div key={label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: color + "20" }}>
+                              <Icon className="h-3.5 w-3.5" style={{ color }} />
+                            </div>
+                            <span className="text-sm font-medium">{label}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{gb} GB</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${itemPct}%`, background: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* This month */}
+              <div className="rounded-xl border border-border bg-secondary/40 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Added this month</span>
+                </div>
+                <p className="text-2xl font-bold">{STORAGE_DATA.addedThisMonth} <span className="text-base font-normal text-muted-foreground">GB</span></p>
+                <p className="text-xs text-muted-foreground mt-0.5">At this rate, you'll fill your plan in ~2 months.</p>
+              </div>
+            </div>
+
+            {/* Upgrade card pinned at bottom */}
+            <div className="px-6 py-5 border-t border-border">
+              <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 mb-3">
+                <p className="text-sm font-semibold mb-0.5">You're running out of room.</p>
+                <p className="text-xs text-muted-foreground">Upgrade to keep everything safe.</p>
+                <div className="mt-3 flex flex-col gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex justify-between"><span>Lite plan</span><span className="font-medium text-foreground">10 GB</span></div>
+                  <div className="flex justify-between"><span>Pro plan</span><span className="font-medium text-foreground">50 GB</span></div>
+                </div>
+              </div>
+              <Link
+                to="/pricing"
+                onClick={() => setStorageOpen(false)}
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:bg-primary/90 transition-colors"
+              >
+                Upgrade Storage <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </TooltipProvider>
   );
 }

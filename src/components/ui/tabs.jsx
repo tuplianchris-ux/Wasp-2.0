@@ -61,6 +61,9 @@ const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
       "focus-visible:outline-none",
       // Crossfade: fade in + slight translateY (tab-in keyframe in tailwind.config)
       "animate-tab-in",
+      // Ensure inactive tabs are hidden even when flex/grid display classes are applied
+      // (Tailwind's data variant has higher specificity than generic class selectors)
+      "data-[state=inactive]:hidden",
       className
     )}
     {...props}

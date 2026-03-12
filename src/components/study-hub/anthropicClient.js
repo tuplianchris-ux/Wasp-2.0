@@ -1,10 +1,10 @@
 /**
- * Anthropic Messages API client for Study Hub.
+ * LLM API client for Study Hub (Groq OpenAI-compatible endpoint).
  * Builds system prompts and sends requests; parses JSON for quiz/flashcards.
  */
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
 const AGENT_LABELS = {
   deep: "Deep Analysis",
@@ -41,21 +41,26 @@ export function buildSystemPrompt(activeTab, options = {}) {
     return `You are a study assistant. Generate exactly ${count} flashcards in "${cardStyle}" format based on the given content. Return a valid JSON array only, no markdown or explanation. Each item must have: "front" (string), "back" (string). For Cloze (fill-in-the-blank), put the sentence with _____ for the blank in "front" and the missing word/phrase in "back".`;
   }
 
+  if (activeTab === "notes") {
+    const style = options.notesStyle || "Outline";
+    return `You are a study assistant. Generate structured study notes in "${style}" style from the given content. Use markdown: headers, bullets, bold for key terms. Return clean markdown only, no preamble.`;
+  }
+
+  if (activeTab === "slides") {
+    const count = options.slideCount ?? 5;
+    return `You are a study assistant. Turn the given content into ${count} presentation slides. Return a valid JSON array only, no markdown or explanation. Each item must have: "title" (string), "content" (string).`;
+  }
+
   return "You are a helpful study assistant.";
 }
 
 /**
- * Build user message content: text block + optional image blocks.
+ * Build user message as plain text (Groq chat format).
  * @param {string} textContent - main text (paste + file text + link note)
  * @param {Array<{type: string, name?: string, data?: string, text?: string}>} attachments - from state
  */
 function buildUserContent(textContent, attachments = []) {
-  const blocks = [];
-
-  const hasText = textContent && textContent.trim().length > 0;
-  let combinedText = "";
-
-  if (hasText) combinedText += textContent.trim();
+  let combinedText = textContent && textContent.trim().length > 0 ? textContent.trim() : "";
 
   const linkNote = attachments
     .filter((a) => a.type === "link" && a.url)
@@ -63,32 +68,14 @@ function buildUserContent(textContent, attachments = []) {
     .join("\n");
   if (linkNote) combinedText += (combinedText ? "\n\n" : "") + linkNote;
 
-  if (combinedText) {
-    blocks.push({ type: "text", text: combinedText });
-  }
+  const imageCount = attachments.filter((a) => a.type === "image" && a.data).length;
+  if (imageCount > 0) combinedText += (combinedText ? "\n\n" : "") + `[${imageCount} image(s) attached — describe or use the text above.]`;
 
-  attachments
-    .filter((a) => a.type === "image" && a.data)
-    .forEach((a) => {
-      blocks.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: a.mediaType || "image/png",
-          data: a.data,
-        },
-      });
-    });
-
-  if (blocks.length === 0) {
-    blocks.push({ type: "text", text: "(No content provided.)" });
-  }
-
-  return blocks;
+  return combinedText || "(No content provided.)";
 }
 
 /**
- * Call Anthropic Messages API.
+ * Call Groq Chat Completions API (OpenAI-compatible).
  * @param {string} activeTab - "summarize" | "quiz" | "flashcards"
  * @param {object} options - tab-specific options (agent, summaryStyle, numQuestions, etc.)
  * @param {string} textContent - main content
@@ -96,9 +83,9 @@ function buildUserContent(textContent, attachments = []) {
  * @returns {Promise<{ type: string, data: any, raw?: string }>} - { type, data } with parsed data or error
  */
 export async function callAnthropic(activeTab, options, textContent, attachments = []) {
-  const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+  const apiKey = process.env.REACT_APP_GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error("REACT_APP_ANTHROPIC_API_KEY is not set.");
+    throw new Error("REACT_APP_GROQ_API_KEY is not set.");
   }
 
   const system = buildSystemPrompt(activeTab, options);
@@ -107,16 +94,17 @@ export async function callAnthropic(activeTab, options, textContent, attachments
   const body = {
     model: options.model || DEFAULT_MODEL,
     max_tokens: options.max_tokens ?? 4096,
-    system,
-    messages: [{ role: "user", content: userContent }],
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: userContent },
+    ],
   };
 
-  const response = await fetch(ANTHROPIC_API_URL, {
+  const response = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
   });
@@ -134,11 +122,25 @@ export async function callAnthropic(activeTab, options, textContent, attachments
   }
 
   const data = await response.json();
-  const textBlock = data.content?.find((b) => b.type === "text");
-  const raw = textBlock?.text?.trim() || "";
+  const raw = (data.choices?.[0]?.message?.content ?? "").trim();
 
   if (activeTab === "summarize") {
     return { type: "summary", data: raw, raw };
+  }
+
+  if (activeTab === "notes") {
+    return { type: "notes", data: raw, raw };
+  }
+
+  if (activeTab === "slides") {
+    const parsed = parseJsonArray(raw);
+    const slides = Array.isArray(parsed)
+      ? parsed.map((item) => ({
+          title: item.title ?? "Slide",
+          content: item.content ?? item.text ?? "",
+        }))
+      : [];
+    return { type: "slides", data: slides, raw };
   }
 
   if (activeTab === "quiz") {

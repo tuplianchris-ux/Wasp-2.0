@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -14,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
+import { MessageSquare, PanelRightOpen, Send } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import {
   DropdownMenu,
@@ -53,6 +56,8 @@ import PhosphorIcon from "../components/icons/PhosphorIcon";
 import { noteTemplates, getTemplateList } from "../templates/noteTemplates";
 import { noteSchema, formatZodErrors } from "../lib/validation";
 
+const NOTES_CHAT_MOCK_RESPONSE = "I can help you with notes, outlines, and diagram ideas. Open the editing page on the side to write or draw—you can paste content there and use \"AI Suggest Diagram\" to generate a mind map from your text. What would you like to work on?";
+
 export default function NotesStudio() {
   const [title, setTitle] = useState("Untitled Note");
   const [characterCount, setCharacterCount] = useState(0);
@@ -69,9 +74,14 @@ export default function NotesStudio() {
   const [lastDiagramSuggestion, setLastDiagramSuggestion] = useState(null);
   const [noteErrors, setNoteErrors] = useState({});
   const [paperStyle, setPaperStyle] = useState(true); // lined note paper vs plain whiteboard
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
   const excalidrawRef = useRef(null);
   const saveNoteRef = useRef(null);   // stable ref so auto-save interval sees latest fn
+  const chatScrollRef = useRef(null);
   const { toast } = useToast();
+  const location = useLocation();
 
   const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
   const PAPER_BG = "#faf9f6";
@@ -202,6 +212,10 @@ export default function NotesStudio() {
     if (savedCanvas) {
       try {
         const canvas = JSON.parse(savedCanvas);
+        // Ensure collaborators is always a Map, never a plain object
+        if (canvas.appState) {
+          canvas.appState.collaborators = new Map();
+        }
         setCanvasData(canvas);
       } catch (e) {
         console.error("Failed to load saved canvas:", e);
@@ -209,14 +223,24 @@ export default function NotesStudio() {
     }
   }, [title, editor]);
 
+  // Pre-fill from a task template navigated from Profile
+  useEffect(() => {
+    const incoming = location.state?.useTemplate;
+    if (!incoming) return;
+    if (incoming.title) setTitle(incoming.title);
+    setSheetOpen(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Save canvas state to localStorage only — does NOT call setCanvasData so it
   // never triggers a NotesStudio re-render.  saveNote() reads the canvas
   // directly from excalidrawAPI, so React state is not needed here.
   const saveCanvasState = useCallback((elements, appState) => {
     if (title) {
+      // Strip collaborators (Map) and other non-serializable fields before JSON storage
+      const { collaborators, openMenu, openSidebar, ...serializableAppState } = appState || {};
       const canvasState = {
         elements,
-        appState,
+        appState: serializableAppState,
         lastSaved: new Date().toISOString()
       };
       localStorage.setItem(`notes-studio-canvas-${title}`, JSON.stringify(canvasState));
@@ -595,6 +619,17 @@ export default function NotesStudio() {
   // Stable callback so Excalidraw never sees a new prop reference on re-render
   const handleExcalidrawAPI = useCallback((api) => setExcalidrawAPI(api), []);
 
+  // Chat: mock send — add user message and assistant reply with "Open in editor" CTA
+  const handleChatSend = useCallback(() => {
+    const text = chatInput.trim();
+    if (!text) return;
+    const userMsg = { id: Date.now(), role: "user", content: text };
+    const assistantMsg = { id: Date.now() + 1, role: "assistant", content: NOTES_CHAT_MOCK_RESPONSE };
+    setChatMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setChatInput("");
+    setTimeout(() => chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" }), 50);
+  }, [chatInput]);
+
   // When paper style is toggled, update canvas background color live
   useEffect(() => {
     if (!excalidrawAPI) return;
@@ -745,59 +780,154 @@ export default function NotesStudio() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="flex flex-col">
-            <Input
-              value={title}
-              onChange={(e) => { setTitle(e.target.value); setNoteErrors((p) => ({ ...p, title: undefined })); }}
-              className={`text-xl font-semibold bg-transparent border-none focus-visible:ring-0 px-0 max-w-md ${noteErrors.title ? "border-b border-destructive" : ""}`}
-              placeholder="Enter note title..."
-            />
-            {noteErrors.title && (
-              <p className="text-xs text-destructive mt-0.5">{noteErrors.title}</p>
+      {/* Chat-first header */}
+      <header className="flex shrink-0 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-4 py-3">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-lg">Notes Studio</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setSheetOpen(true)}
+        >
+          <PanelRightOpen className="h-4 w-4" />
+          Open editor
+        </Button>
+      </header>
+
+      {/* Chat area (primary view) */}
+      <main className="flex-1 flex flex-col min-h-0">
+        <div
+          ref={chatScrollRef}
+          className="flex-1 overflow-y-auto px-4 py-6"
+        >
+          <div className="mx-auto max-w-2xl space-y-4">
+            {chatMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+                  <MessageSquare className="h-7 w-7 text-muted-foreground" />
+                </div>
+                <h2 className="text-lg font-semibold text-foreground">Ask for notes, outlines, or diagram ideas</h2>
+                <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                  Chat here, then open the editing page to write or draw. You can also generate diagrams from your note text.
+                </p>
+              </div>
+            ) : (
+              chatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border bg-card"
+                    }`}
+                  >
+                    {msg.role === "assistant" && (
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    )}
+                    {msg.role === "user" && <p className="text-sm">{msg.content}</p>}
+                    {msg.role === "assistant" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mt-3 gap-1.5"
+                        onClick={() => setSheetOpen(true)}
+                      >
+                        <PanelRightOpen className="h-3.5 w-3.5" />
+                        Edit in studio
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Template gallery trigger */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 border-border hover:border-primary/40 transition-colors"
-            onClick={() => setShowTemplateModal(true)}
-          >
-            <Layout className="w-4 h-4 text-primary/70" />
-            <span className="hidden sm:inline">Templates</span>
-          </Button>
-
-          {/* Save Button */}
-          <Button
-            size="sm"
-            className="gap-2 min-w-[90px]"
-            onClick={() => saveNote(false)}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <BookMarked className="w-4 h-4" />
-                Save
-              </>
-            )}
-          </Button>
+        <div className="shrink-0 border-t border-border bg-card/30 p-4">
+          <div className="mx-auto flex max-w-2xl gap-2">
+            <textarea
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChatSend(); } }}
+              placeholder="Ask for an outline, bullet points, or diagram idea..."
+              rows={1}
+              className="min-h-[44px] flex-1 resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <Button
+              size="icon"
+              className="shrink-0 rounded-xl h-11 w-11"
+              onClick={handleChatSend}
+              disabled={!chatInput.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" className="h-full">
+      {/* Editing panel (Sheet) — note + canvas */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent
+          side="right"
+          className="w-full max-w-[95vw] sm:max-w-4xl overflow-hidden flex flex-col p-0 gap-0"
+        >
+          <SheetHeader className="shrink-0 px-6 py-4 border-b border-border">
+            <SheetTitle className="text-left">Editing page</SheetTitle>
+          </SheetHeader>
+          {/* Top Bar for note (inside sheet) */}
+          <div className="flex shrink-0 items-center justify-between px-6 py-3 border-b border-border bg-card/50">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="flex flex-col">
+                <Input
+                  value={title}
+                  onChange={(e) => { setTitle(e.target.value); setNoteErrors((p) => ({ ...p, title: undefined })); }}
+                  className={`text-lg font-semibold bg-transparent border-none focus-visible:ring-0 px-0 max-w-md ${noteErrors.title ? "border-b border-destructive" : ""}`}
+                  placeholder="Enter note title..."
+                />
+                {noteErrors.title && (
+                  <p className="text-xs text-destructive mt-0.5">{noteErrors.title}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setShowTemplateModal(true)}
+              >
+                <Layout className="w-4 h-4 text-primary/70" />
+                <span className="hidden sm:inline">Templates</span>
+              </Button>
+              <Button
+                size="sm"
+                className="gap-2 min-w-[80px]"
+                onClick={() => saveNote(false)}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <BookMarked className="w-4 h-4" />
+                    Save
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Main Content Area (editor + canvas inside sheet) */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <PanelGroup direction="horizontal" className="h-full min-h-0">
           {/* Left Panel - Rich Text Editor (40%) */}
           <Panel defaultSize={40} minSize={30} maxSize={50}>
             <div className="h-full p-6 bg-card/30 rounded-r-2xl mr-2">
@@ -960,7 +1090,7 @@ export default function NotesStudio() {
       </div>
 
       {/* Bottom Bar - Tools */}
-      <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-card/50 backdrop-blur-sm">
+          <div className="flex shrink-0 items-center justify-between px-6 py-3 border-t border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -1048,6 +1178,8 @@ export default function NotesStudio() {
           </Button>
         </div>
       </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Template Gallery Modal */}
       <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>

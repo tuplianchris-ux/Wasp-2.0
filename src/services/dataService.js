@@ -26,6 +26,7 @@ const generateMockUsers = () => [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
     banner: null,
     bio: 'High school student passionate about learning and growth',
+    role: 'student',
     xp: 1250,
     coins: 350,
     level: 5,
@@ -36,12 +37,13 @@ const generateMockUsers = () => [
     created_at: new Date().toISOString()
   },
   {
-    user_id: 'user_demo_002', 
+    user_id: 'user_demo_002',
     email: 'sarah@taskflow.com',
     name: 'Sarah Scholar',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
     banner: null,
     bio: 'College student studying computer science',
+    role: 'teacher',
     xp: 2100,
     coins: 525,
     level: 5,
@@ -534,7 +536,14 @@ const generateMockCommunityData = () => ({
 });
 
 // Initialize mock data
+const DATA_VERSION = 'v2_roles'; // bump this to force a reset when mock data shape changes
 const initializeMockData = () => {
+  if (loadFromLocalStorage('data_version') !== DATA_VERSION) {
+    ['users', 'tasks', 'notes', 'library_items', 'competitions', 'shop_items', 'community_data'].forEach(
+      (k) => localStorage.removeItem(k)
+    );
+    saveToLocalStorage('data_version', DATA_VERSION);
+  }
   const users = generateMockUsers();
   const tasks = [
     ...generateMockTasks(users[0].user_id),

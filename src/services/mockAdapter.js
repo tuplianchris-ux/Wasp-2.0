@@ -22,6 +22,7 @@ const mockUser = {
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
   banner: null,
   bio: 'High school student passionate about learning and growth',
+  role: 'student',
   xp: 1250,
   coins: 350,
   level: 5,
@@ -129,8 +130,8 @@ const mockSchools = [
 
 // Leaderboard for schools (enriched)
 const mockLeaderboard = [
-  { user_id: 'user_demo_001', name: 'Alex Student', xp: 1250, rank: 1 },
-  { user_id: 'user_demo_002', name: 'Sarah Scholar', xp: 980, rank: 2 }
+  { user_id: 'user_demo_001', name: 'Alex Student', xp: 1250, rank: 1, role: 'student' },
+  { user_id: 'user_demo_002', name: 'Sarah Scholar', xp: 980, rank: 2, role: 'teacher' }
 ];
 
 function getPath(url) {
@@ -537,7 +538,7 @@ window.fetch = function (url, opts) {
   if (path.includes('/api/checkout/founder-pass') && method === 'POST') {
     return Promise.resolve(
       new Response(
-        JSON.stringify({ url: '/success', session_id: 'mock_session' }),
+        JSON.stringify({ checkout_url: '/success', session_id: 'mock_session' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       )
     );

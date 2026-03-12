@@ -58,7 +58,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Auth API
 export const authAPI = {
-  // Login
+  // Login — looks up user by email so different mock accounts work
   login: async (email, password) => {
     if (USE_REAL_API) {
       return apiRequest('/auth/login', {
@@ -66,39 +66,52 @@ export const authAPI = {
         body: JSON.stringify({ email, password })
       });
     } else {
-      // Mock login - return first user from localStorage
-      const user = await dataService.getCurrentUser();
-      return {
-        user,
-        token: 'mock_token_' + Date.now()
-      };
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const found = users.find(u => u.email === email);
+      const user = found || await dataService.getCurrentUser();
+      localStorage.setItem('mock_current_user', JSON.stringify(user));
+      return { user, token: 'mock_token_' + Date.now() };
     }
   },
 
-  // Register
-  register: async (email, password, name) => {
+  // Register — creates a new user with the selected role
+  register: async (email, password, name, role = 'student') => {
     if (USE_REAL_API) {
       return apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify({ email, password, name, role })
       });
     } else {
-      // Mock registration
-      const user = await dataService.getCurrentUser();
-      return {
-        user: { ...user, email, name },
-        token: 'mock_token_' + Date.now()
+      const newUser = {
+        user_id: `user_${Date.now()}`,
+        email, name, role,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+        banner: null,
+        bio: '',
+        xp: 0, coins: 100, level: 1,
+        is_premium: false, avatar_frame: null,
+        badges: [],
+        school_id: null,
+        created_at: new Date().toISOString(),
       };
+      // Persist to users list and set as current user
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('mock_current_user', JSON.stringify(newUser));
+      return { user: newUser, token: 'mock_token_' + Date.now() };
     }
   },
 
-  // Get current user
+  // Get current user — prefers the last logged-in/registered user
   getCurrentUser: async () => {
     if (USE_REAL_API) {
       return apiRequest('/auth/me');
     } else {
       const token = localStorage.getItem('token') || 'mock_token_demo';
       localStorage.setItem('token', token);
+      const stored = localStorage.getItem('mock_current_user');
+      if (stored) { try { return JSON.parse(stored); } catch (_) {} }
       return dataService.getCurrentUser();
     }
   },
@@ -108,8 +121,8 @@ export const authAPI = {
     if (USE_REAL_API) {
       return apiRequest('/auth/logout', { method: 'POST' });
     } else {
-      // Mock logout - just clear token
       localStorage.removeItem('token');
+      localStorage.removeItem('mock_current_user');
       return { message: 'Logged out successfully' };
     }
   },

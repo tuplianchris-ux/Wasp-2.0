@@ -21,20 +21,23 @@ import {
   Users,
   Flame,
   ArrowRight,
-  Infinity,
   Coins,
-  Shirt,
-  Trophy,
   BadgeCheck,
   Ticket,
-  TrendingUp,
   Clock,
   RefreshCw,
   HelpCircle,
+  Brain,
+  BookOpen,
+  Cpu,
+  BarChart2,
+  Lock,
 } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 // ─── Tier Data ───────────────────────────────────────────────────────────────
 const TIERS = [
@@ -45,7 +48,7 @@ const TIERS = [
     price: 4.99,
     spotsTotal: 500,
     spotsLeft: 347,
-    tagline: "Plant your roots early.",
+    tagline: "Lock in your spot early.",
     gradient: "from-emerald-400 to-teal-500",
     glow: "shadow-emerald-500/30",
     border: "border-emerald-400/30",
@@ -54,10 +57,10 @@ const TIERS = [
     bgAccent: "bg-emerald-400/10",
     features: [
       { icon: BadgeCheck, text: "Exclusive Seed founder badge" },
-      { icon: Zap, text: "10 games / week — forever" },
-      { icon: Coins, text: "100 coins gifted on launch" },
-      { icon: Users, text: "Private founders community" },
-      { icon: Ticket, text: "Early access to new features" },
+      { icon: Zap, text: "12 free AI calls/day — forever (free was 6)" },
+      { icon: Coins, text: "200 coins gifted on launch" },
+      { icon: Brain, text: "Extra calls cost 40 coins (free tier: 50)" },
+      { icon: Ticket, text: "Early access to every new feature" },
     ],
   },
   {
@@ -67,7 +70,7 @@ const TIERS = [
     price: 9.99,
     spotsTotal: 250,
     spotsLeft: 189,
-    tagline: "Build your foundation.",
+    tagline: "More power, more study.",
     gradient: "from-amber-600 to-orange-500",
     glow: "shadow-orange-500/30",
     border: "border-amber-500/30",
@@ -76,10 +79,10 @@ const TIERS = [
     bgAccent: "bg-amber-500/10",
     features: [
       { icon: BadgeCheck, text: "Everything in Seed" },
-      { icon: Infinity, text: "Unlimited games forever" },
-      { icon: Shirt, text: "5 exclusive skins" },
-      { icon: Coins, text: "500 coins gifted on launch" },
-      { icon: Star, text: "Bronze profile frame" },
+      { icon: Zap, text: "20 free AI calls/day — forever" },
+      { icon: Coins, text: "600 coins gifted on launch" },
+      { icon: Brain, text: "1.5× coins earned from studying" },
+      { icon: Star, text: "Bronze animated profile frame" },
     ],
   },
   {
@@ -89,7 +92,7 @@ const TIERS = [
     price: 24.99,
     spotsTotal: 100,
     spotsLeft: 61,
-    tagline: "The sweet spot.",
+    tagline: "The serious student tier.",
     gradient: "from-slate-300 to-slate-500",
     glow: "shadow-slate-400/40",
     border: "border-slate-400/50",
@@ -99,11 +102,11 @@ const TIERS = [
     recommended: true,
     features: [
       { icon: BadgeCheck, text: "Everything in Bronze" },
-      { icon: Shirt, text: "20 exclusive skins" },
+      { icon: Zap, text: "35 free AI calls/day — forever" },
       { icon: Coins, text: "2,000 coins gifted on launch" },
-      { icon: Trophy, text: "All current & future battle passes" },
-      { icon: Crown, text: "Silver animated profile frame" },
-      { icon: Zap, text: "2× XP boost for 30 days" },
+      { icon: Brain, text: "2× coins earned from studying — forever" },
+      { icon: Star, text: "Silver animated profile frame" },
+      { icon: Lock, text: "Your coin costs never increase — locked forever" },
     ],
   },
   {
@@ -113,7 +116,7 @@ const TIERS = [
     price: 49.99,
     spotsTotal: 50,
     spotsLeft: 23,
-    tagline: "Lead the vision.",
+    tagline: "For those who believe in this.",
     gradient: "from-yellow-400 to-amber-500",
     glow: "shadow-yellow-500/40",
     border: "border-yellow-400/40",
@@ -122,12 +125,12 @@ const TIERS = [
     bgAccent: "bg-yellow-400/10",
     features: [
       { icon: BadgeCheck, text: "Everything in Silver" },
-      { icon: Shirt, text: "30 exclusive skins" },
-      { icon: Coins, text: "10,000 coins gifted on launch" },
-      { icon: BadgeCheck, text: "Name in credits forever" },
-      { icon: TrendingUp, text: "Revenue share program (2%)" },
+      { icon: Zap, text: "60 free AI calls/day — forever" },
+      { icon: Coins, text: "8,000 coins gifted on launch" },
+      { icon: Brain, text: "3× coins earned from studying — forever" },
       { icon: Crown, text: "Gold animated profile frame" },
-      { icon: Users, text: "Direct line to founding team" },
+      { icon: Cpu, text: "Priority generation — always skip the queue" },
+      { icon: Star, text: "Name in the in-app Founders Hall of Fame" },
     ],
   },
 ];
@@ -147,11 +150,11 @@ const FAQS = [
   },
   {
     q: "When do I get my perks?",
-    a: "Coins, skins, and badges are credited to your account on launch day. Your founder badge and profile frame are activated immediately after purchase.",
+    a: "Coins are credited to your account on launch day. Your founder badge, profile frame, increased daily AI allowance, and coin multiplier activate immediately after purchase.",
   },
   {
-    q: "What is the revenue share on Gold?",
-    a: "Gold founders receive 2% of net revenue generated by any user they directly refer to the platform, paid monthly, with no cap or expiry.",
+    q: "What happens when I use all my free daily calls?",
+    a: "You can keep generating using coins — which you earn automatically just by studying on the platform. Founder tiers earn coins faster and spend fewer per call, so active students rarely hit a hard wall. You can also purchase coin packs from the Shop at any time.",
   },
 ];
 
@@ -523,9 +526,9 @@ export default function Pricing() {
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-1">Not sure which tier?</h3>
               <p className="text-muted-foreground text-sm">
-                Silver is our most popular tier — unlimited games, 2,000 coins,
-                all battle passes, and lifetime perks for the price of a lunch.
-                You can always upgrade later.
+                Silver is the sweet spot — 35 free AI calls per day, 2,000 coins on launch,
+                a 2× study coin multiplier forever, and your costs locked at today's rates for life.
+                Less than the price of a textbook. Upgrade anytime.
               </p>
             </div>
             <Button

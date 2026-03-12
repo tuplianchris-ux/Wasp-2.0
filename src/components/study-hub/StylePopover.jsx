@@ -22,6 +22,8 @@ const CARD_STYLES = [
   { id: "question_answer", label: "Question → Answer" },
   { id: "cloze", label: "Cloze (fill-in-the-blank)" },
 ];
+const NOTES_STYLES = ["Outline", "Cornell", "Detailed"];
+const SLIDE_COUNTS = [5, 8, 10, 12];
 
 function Segment({ options, value, onChange }) {
   return (
@@ -73,6 +75,8 @@ export default function StylePopover({
   const summarizeOpts = options.summarize || {};
   const quizOpts = options.quiz || {};
   const flashcardOpts = options.flashcards || {};
+  const notesOpts = options.notes || {};
+  const slidesOpts = options.slides || {};
 
   return (
     <motion.div
@@ -181,6 +185,39 @@ export default function StylePopover({
           </div>
         </div>
       )}
+      {mode === "notes" && (
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1.5 font-hub-sans text-xs font-medium text-hub-muted">Style</p>
+            <Segment
+              options={NOTES_STYLES}
+              value={notesOpts.notesStyle ?? "Outline"}
+              onChange={(v) => onChange("notes", { ...notesOpts, notesStyle: v })}
+            />
+          </div>
+        </div>
+      )}
+      {mode === "slides" && (
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1.5 font-hub-sans text-xs font-medium text-hub-muted">Slide count</p>
+            <div className="flex flex-wrap gap-1">
+              {SLIDE_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => onChange("slides", { ...slidesOpts, slideCount: n })}
+                  className={`h-8 w-10 rounded-lg font-hub-sans text-xs font-medium transition ${
+                    (slidesOpts.slideCount ?? 5) === n ? "bg-hub-accent text-white" : "bg-hub-bg text-hub-muted hover:bg-hub-elevated hover:text-hub-text"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -195,5 +232,7 @@ export function getStylePillLabel(mode, options) {
     const id = options.flashcards?.cardStyle || "term_def";
     return CARD_STYLES.find((c) => c.id === id)?.label || "Term → Definition";
   }
+  if (mode === "notes") return options.notes?.notesStyle || "Outline";
+  if (mode === "slides") return `${options.slides?.slideCount ?? 5} slides`;
   return "Options";
 }

@@ -14,6 +14,15 @@ if (!isUsingRealAPI()) {
 
 // Pages
 import LandingPage from "./pages/LandingPage";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherClasses from "./pages/teacher/Classes";
+import TeacherAssignments from "./pages/teacher/Assignments";
+import AssignmentCreator from "./pages/AssignmentCreator";
+import TeacherStudents from "./pages/teacher/Students";
+import StudentIntelligence from "./pages/teacher/StudentIntelligence";
+import TeacherGradebook from "./pages/teacher/Gradebook";
+import TeacherResources from "./pages/teacher/Resources";
+import InvestorDashboard from "./pages/InvestorDashboard";
 import AuthPage from "./pages/AuthPage";
 import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
@@ -122,7 +131,7 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(() =>
     isUsingRealAPI() ? null : getMockUserSync()
   );
-  const [loading, setLoading] = useState(() => !isUsingRealAPI());
+  const [loading, setLoading] = useState(() => isUsingRealAPI());
   const [token, setToken] = useState(() => localStorage.getItem("token"));
 
   useEffect(() => {
@@ -160,8 +169,8 @@ function AuthProvider({ children }) {
     return response;
   };
 
-  const register = async (email, password, name) => {
-    const response = await apiService.auth.register(email, password, name);
+  const register = async (email, password, name, role = 'student') => {
+    const response = await apiService.auth.register(email, password, name, role);
     setUser(response.user);
     setToken(response.token);
     localStorage.setItem("token", response.token);
@@ -185,8 +194,12 @@ function AuthProvider({ children }) {
     return response;
   };
 
+  const isStudent = user?.role === 'student';
+  const isTeacher = user?.role === 'teacher';
+  const isInvestor = user?.role === 'investor';
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, token, login, register, logout, processOAuthCode }}>
+    <AuthContext.Provider value={{ user, setUser, loading, token, login, register, logout, processOAuthCode, isStudent, isTeacher, isInvestor }}>
       {children}
     </AuthContext.Provider>
   );
@@ -225,16 +238,19 @@ function ProtectedRoute({ children }) {
 // App Router
 function AppRouter() {
   const location = useLocation();
+  const { user } = useContext(AuthContext);
 
   // Handle OAuth callback synchronously
   if (location.hash?.includes("session_id=")) {
     return <AuthCallback />;
   }
 
+  const defaultRoute = user?.role === 'teacher' ? '/teacher' : user?.role === 'investor' ? '/investor' : '/dashboard';
+
   return (
     <Routes>
-      <Route path="/" element={isUsingRealAPI() ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
-      <Route path="/auth" element={isUsingRealAPI() ? <AuthPage /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
       </Route>
@@ -276,6 +292,20 @@ function AppRouter() {
       <Route path="/settings" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Settings />} />
       </Route>
+      <Route path="/teacher" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<TeacherDashboard />} />
+        <Route path="classes" element={<TeacherClasses />} />
+        <Route path="assignments" element={<TeacherAssignments />} />
+        <Route path="assignments/create" element={<AssignmentCreator />} />
+        <Route path="students" element={<TeacherStudents />} />
+        <Route path="students/intelligence" element={<StudentIntelligence />} />
+        <Route path="gradebook" element={<TeacherGradebook />} />
+        <Route path="ai-generator" element={<TeacherAssignments autoOpenAI />} />
+        <Route path="resources" element={<TeacherResources />} />
+      </Route>
+      <Route path="/investor" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<InvestorDashboard />} />
+      </Route>
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/success" element={<Success />} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -286,7 +316,7 @@ function AppRouter() {
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <MockModeBanner />
           <AppRouter />
